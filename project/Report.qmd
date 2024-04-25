@@ -1,0 +1,143 @@
+---
+title: "Life expectancy in the world and related data"
+subtitle: "The possible correlation between a diffucult access to sanitation services at school, number of refugees in host country impacting the life expectancy in the 2020s"
+author: "Melaine Froc"
+date: "2024-04-25"
+format: html
+---
+```{r}
+#| label: setup
+#| include: false
+
+# libraries
+library(tidyverse)
+library(gapminder)
+library(plotly)
+library(ggplot2)
+
+# data 
+indicator_1 <- read_delim("indicator_1.csv", 
+                          delim = ";", escape_double = FALSE, trim_ws = TRUE)
+indicator_2 <- read_delim("indicator_2.csv", 
+                          delim = ";", escape_double = FALSE, trim_ws = TRUE)
+metadata <- read_delim("metadata.csv", delim = ";", 
+                       escape_double = FALSE, trim_ws = TRUE)
+localisation <- read_delim("localisation.pdf",
+                           delim = ";", escape_double = FALSE, trim_ws = TRUE)
+
+# transformations
+indicator_1 <- read_delim("indicator_1.csv", 
+                          delim = ";", escape_double = FALSE, trim_ws = TRUE)
+indicator_2 <- read_delim("indicator_2.csv", 
+                          delim = ";", escape_double = FALSE, trim_ws = TRUE)
+metadata <- read_delim("metadata.csv", delim = ";", 
+                       escape_double = FALSE, trim_ws = TRUE)
+localisation <- read_delim("localisation.pdf",
+                           delim = ";", escape_double = FALSE, trim_ws = TRUE)
+```
+# Introduction
+
+As a *Data Analyst* at **UNICEF**, I will today raise awareness on ***health situation in the globe since 2004***. To do so, datas will be the key.
+
+## The links
+The link between the proportion of schools with a limited access to sanitation services, the amount of refugees by host country and those related to the life expectancy at birth are studied to raise awareness. High values could testify of complex access to the basic needs especially for children and refugees. Refugees might also face such situation, living in difficult conditions. That is why it is an interesting data to understand the situation and the impact on the life expectancy. 
+
+## Analysis
+Indeed some countries, like Sierra Leone have a high proportion of refugees but also a high number of limited access to sanitation services at schools. Those high data might result in a lower life expectancy at birth as a consequence, as we can see on the map about life expectancy. Indeed, the tendancy on the visual testing the correlation appears really positive at first, showing a corelation between those elements. To go deeper, developping countries often have a lower life expectancy and this is mainly due to unsufficient ressources and infrastructures. 
+
+```{r}
+#| fig-cap: "This map of the world illustrates the life expectancy in the world in 2021, showing many gaps accross the globe. This prouves that the life in different countries, including socialy is inequal."
+# Map
+
+# Simplify_name
+colnames(metadata)[4] <- "Life_Exp"
+
+# Join_Data_For_World_Map_chart 
+data_join <- indicator_1 %>%
+  full_join(indicator_2, by = c("country", "time_period")) %>%
+  full_join(metadata, by = c("country"="country", "time_period"= "year")) %>%
+  full_join(localisation, by = c("country" = "country"))
+
+# World_Map_chart 
+map_world <- map_data("world")
+map_world$region <- as.character(map_world$region)
+map_world$region[map_world$region == "USA"] <- "United States of America"
+map_world$region[map_world$region == "UK"] <- "United Kingdom"
+map_world$region[map_world$region == "Republic of Congo"] <- "Republic of the Congo"
+map_world$region[map_world$region == "Democratic Republic of the Congo"] <- "Congo"
+
+map_data_join <- full_join(data_join, map_world, by = c("country"="region"))
+
+data_2021 <- filter(map_data_join, time_period == 2021)
+
+# Map
+ggplot(data_2021) +
+  aes(x = long, y = lat, group = group, fill = Life_Exp) +
+  geom_polygon()+
+  labs(
+    title = "Life Expectancy at birth around the world (measured in years)",
+    subtitle = "Year 2021",
+    fill = "Life Exp"
+  )
+```
+
+```{r}
+# Sample data for TimeSeries
+data <- data.frame(x = c("Yemen", "Sierra Leone", "Nicaragua", "Senegal", "Liberia", "Burundi", "Bangladesh", "Jordan", "Peru", "Guyana"),
+                   y = c(0,10))
+
+# Filter data where 'y' is above 0
+filtered_data <- subset(data, y > 0)
+
+# TimeSeries 
+ggplot(filtered_data, aes(x = x, y = y)) +
+  geom_point() +
+  labs(x = "Country", y = "Number of schools with a limited access to sanitation services (%)", title = "Percentage of schools with a limited access to sanitation services per country")
+
+```
+
+```{r}
+# Prepare_ScatterPlot
+colnames(metadata)[3] <- "Pop"
+colnames(data_join)[9] <- "Pop"
+
+# Prepare_ScatterPlot
+time_serie <- full_join(select(data_join, Life_Exp , time_period, Region, Pop),localisation, by = c("Region"))
+
+# ScatterPlot
+ggplot(time_serie)+
+  aes(Life_Exp , Region, color = Pop) +
+  geom_point()
+  labs(
+    x = "Region", 
+    y = "Number of refugees by host country",
+    title = "Life Expectancy at birth in the population of the region"
+  )
+options(scipen = 999)
+
+```
+
+```{r}
+# BarChart
+BarChart <- data_join %>%
+  group_by(Region, indicator.x,time_period) %>%
+  summarise(m_Life_Exp = mean(Life_Exp, na.rm = TRUE)) %>%
+  ggplot() +
+  aes(Region, m_Life_Exp, fill = Region) +
+  geom_col() +
+  facet_wrap(~ indicator.x, nrow = 1) + 
+  labs(
+    x = "",
+    y = "Number_of_refugees",
+    fill = "indicator.x",
+    title = "Life expectancy in countries & number of refugees by host county in 2020s"
+  )
+
+ggplotly(BarChart)
+
+```
+
+# Conclusion and recommandations
+
+In order to help in this situation with so many *inquelaties*, providing help to have access to sanititattion services is an example of a way to help generations to have a longer life expectancy. In addition, helping host countries to provide a safe environment to refugees might also help those refugees to live better and longer. 
+There are some examples of how developped countries can help developing countries. 
